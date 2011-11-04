@@ -5,7 +5,7 @@ module OAuth (
 
 import Signature
 
-import Codec.Binary.UTF8.String (encodeString,utf8Encode)
+import Codec.Binary.UTF8.String (encodeString)
 import Network.HTTP
 import Network.URI
 import Network.HTTP.Proxy (parseProxy)
@@ -31,7 +31,7 @@ getUnixTime :: IO Integer
 getUnixTime = getUnixTime' <$> getClockTime
   where
     getUnixTime' (TOD i _) = i
-    
+
 oauthRequest :: OAuth -> URL -> RequestMethod -> [(String,String)] -> IO Request_String
 oauthRequest oauth url method param = do
   nonce <- show <$> randomInt
@@ -45,15 +45,15 @@ oauthRequest oauth url method param = do
                                      ("oauth_token", accessToken oauth),
                                      ("oauth_version", "1.0")]
     signature = makeSignature url method (consumerSecret oauth) (accessTokenSecret oauth) (param' ++ oauthParam)
-    urlParam = sort [("oauth_signature", signature):(param' ++ oauthParam)]
+    urlParam = sort (("oauth_signature", signature):(param' ++ oauthParam))
     oauthURL = url ++ "?" ++ (intercalate "&" (map concatParam urlParam))
-    
+
     concatParam :: (String,String) -> String
     concatParam (x,y) = x ++ "=" ++ y
-    
+
     parameterUrlEncode :: [(String,String)] -> [(String,String)]
     parameterUrlEncode = map (\(x,y) -> (urlEncode x,urlEncode y))
-    
+
   return $ Request {
     rqURI = fromJust $ parseURI oauthURL,
     rqMethod = method,
