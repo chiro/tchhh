@@ -11,16 +11,9 @@ import qualified Data.Enumerator.List as EL
 
 import Control.Concurrent
 
-iter :: Iteratee StreamingAPI IO ()
-iter = do
-  st <- EL.head
-  case st of
-    Just x -> iter
-    Nothing -> return ()
-
 main :: IO ()
 main = do
-  forkIO $ do withCF $ do run_ $ userstream (EL.mapM (\x -> showTL x >> return x) =$ iter)
+  forkIO . withCF . run_ . userstream $ EL.mapM_ (\x -> showTL x)
   inputLoop
   where inputLoop = do
           s <- getLine
