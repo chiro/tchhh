@@ -35,9 +35,11 @@ main = do
   inputLoop
   where
     quit = T.pack "quit"
+    empty = T.pack ""
     inputLoop = do
       s <- DTI.getLine
-      if s == quit
-        then return ()
-        else do withCF . run_ $ update (DTE.encodeUtf8 s) ignore
-                inputLoop
+      loop s
+    loop s
+      | s == quit  = return ()
+      | s == empty = inputLoop
+      | otherwise  = do withCF . run_ $ update (DTE.encodeUtf8 s) ignore
