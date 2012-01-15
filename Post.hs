@@ -42,9 +42,5 @@ httpMgr req iterf = do
   mgr <- lift getManager
   liftTrans $ http req iterf mgr
 
--- not used
-apiPost' :: String -> HT.Query -> Iteratee B.ByteString IO b -> TW b
-apiPost' uri query iter = run_ $ apiPost uri query iter
-
 update :: B.ByteString -> Iteratee B.ByteString IO a -> Iteratee B.ByteString TW a
 update tw iter = apiPost "https://api.twitter.com/1/statuses/update.json" [(B.pack "status",Just tw)] iter

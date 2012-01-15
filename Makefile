@@ -1,5 +1,5 @@
-all : Base.hs TL.hs main.hs
-	ghc --make main
+all : Base.hs TL.hs Post.hs Main.hs
+	ghc --make Main
 
 clean :
-	rm *.o *.hi main
+	rm *.o *.hi Main
