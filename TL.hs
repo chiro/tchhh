@@ -27,7 +27,12 @@ showTL (SEvent ev) = do
   putStr "> "
   showEventTarget $ evSource ev
   maybe (return ()) (\e -> putStr "> " >> showEventTarget e) $ evTargetObject ev
-showTL _ = return ()
+showTL (SDelete d) = do
+  putStrLn $ "Delete: " ++ (show $ delUserId d) ++ " " ++ (show $ delId d)
+showTL (SFriends f) = do
+  putStrLn "sfriends"
+showTL (SUnknown v) = return() --do putStrLn $ show v
+
 
 showEventTarget :: EventTarget -> IO ()
 showEventTarget (ETUser u) =
