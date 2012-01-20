@@ -4,7 +4,6 @@ module Main where
 
 import Base
 import TL
-import Post
 
 import Web.Twitter.Enumerator
 
@@ -43,3 +42,4 @@ main = do
       | s == quit  = return ()
       | s == empty = inputLoop
       | otherwise  = do withCF . run_ $ update (DTE.encodeUtf8 s) ignore
+                        inputLoop
