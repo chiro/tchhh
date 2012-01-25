@@ -2,7 +2,8 @@
 
 module Main where
 
-import Base
+import Config
+import Common
 import TL
 
 import Web.Twitter.Enumerator
@@ -30,7 +31,9 @@ ignore = EL.mapM_ (\s -> return ())
 
 main :: IO ()
 main = do
-  forkIO . withCF . run_ . userstream $ (showIter =$ logIter)
+  Just cfg <- confFile >>= loadConfig
+  forkIO . (withConfiguration cfg) . run_ . userstream $ (showIter =$ logIter)
+--  forkIO . withCF . run_ . userstream $ (showIter =$ logIter)
   inputLoop
   where
     quit = T.pack "quit"
