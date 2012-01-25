@@ -20,7 +20,7 @@ Executable TCHHH
      , aeson >= 0.3.2.2
      , attoparsec >= 0.8.6.1
      , attoparsec-enumerator
-     , twitter-enumerator
+     , twitter-enumerator < 0.0.2
      , bytestring
      , text
      , containers
