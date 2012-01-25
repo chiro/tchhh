@@ -41,5 +41,5 @@ main = do
     loop s
       | s == quit  = return ()
       | s == empty = inputLoop
-      | otherwise  = do withCF . run_ $ update (DTE.encodeUtf8 s) ignore
+      | otherwise  = do withCF . run_ $ statusesUpdate (DTE.encodeUtf8 s) ignore
                         inputLoop

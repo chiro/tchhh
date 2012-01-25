@@ -1,5 +1,5 @@
 name:   TCHHH
-version:        0.1
+version:        0.1.1
 license:        BSD3
 Author:         Yuichiro Hanada
 maintainer:     peanut2626@gmail.com
@@ -20,7 +20,7 @@ Executable TCHHH
      , aeson >= 0.3.2.2
      , attoparsec >= 0.8.6.1
      , attoparsec-enumerator
-     , twitter-enumerator < 0.0.2
+     , twitter-enumerator
      , bytestring
      , text
      , containers
