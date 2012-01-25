@@ -4,7 +4,8 @@ module Config (
   Configuration(..),
   loadConfig,
   saveConfig,
-  confFile
+  confFile,
+  defaultConfig
   ) where
 
 import Prelude hiding (takeWhile)

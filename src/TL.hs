@@ -2,7 +2,6 @@
 
 module TL where
 
-import Base
 import Web.Twitter.Enumerator
 
 import qualified Data.Text.Encoding as T

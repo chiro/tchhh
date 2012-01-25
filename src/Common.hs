@@ -1,8 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Common (
-  withCF,
-  withCredentialFile,
-  withConfiguration
+  withConfiguration,
+  withConf,
+  initialConfig
   ) where
 
 import Web.Twitter.Enumerator hiding (userId)
@@ -42,34 +43,28 @@ makeCred conf = [("oauth_token",oauthToken conf),
                  ("user_id",userId conf),
                  ("screen_name",screenName conf)]
 
-loadCredential :: FilePath -> IO (Maybe Credential)
-loadCredential file = do
-  existp <- doesFileExist file
-  if existp
-    then
-    do
-      cfg <- loadConfig file
-      case cfg of
-        Just conf -> return . Just . Credential $ makeCred conf
-        Nothing   -> return Nothing
-    else return Nothing
+getPIN :: String -> IO String
+getPIN url = do
+  putStrLn $ "browse URL: " ++ url
+  putStr "> what was the PIN twitter provided you with? "
+  hFlush stdout
+  getLine
 
-
-withCredentialFile :: FilePath -> TW a -> IO a
-withCredentialFile file task = do
+initialConfig :: IO Configuration
+initialConfig = do
   pr <- getProxyEnv
-  cred <- maybe (authorize pr token getPIN) return =<< loadCredential file
-  let env = newEnv token
-  runTW env { twCredential = cred, twProxy = pr } $ task
+  cred <- authorize pr token getPIN
+  return $ setValue defaultConfig (unCredential cred)
   where
-    getPIN url = do
-      putStrLn $ "browse URL: " ++ url
-      putStr "> what was the PIN twitter provided you with? "
-      hFlush stdout
-      getLine
+    setValue cfg [] = cfg
+    setValue cfg ((name,val):xs) =
+      let c = setValue cfg xs in
+      case name of
+        "oauth_token" -> c { oauthToken = val }
+        "oauth_token_secret" -> c { oauthTokenSecret = val }
+        "screen_name" -> c { screenName = val }
+        "user_id"     -> c { userId     = val }
 
-withCF :: TW a -> IO a
-withCF t = confFile >>= \f -> withCredentialFile f t
 
 withConfiguration :: Configuration -> TW a -> IO a
 withConfiguration cfg task = do
@@ -77,6 +72,15 @@ withConfiguration cfg task = do
   let cred = Credential $ makeCred cfg
   let env = newEnv token
   runTW env { twCredential = cred, twProxy = pr } $ task
+  
+withConf :: TW a -> IO a  
+withConf t = do
+  mcfg <- confFile >>= loadConfig
+  case mcfg of
+    Nothing -> do cfg <- initialConfig
+                  confFile >>= \f -> saveConfig f cfg
+                  withConfiguration cfg t
+    Just cfg -> withConfiguration cfg t
 
 getProxyEnv :: IO (Maybe Proxy)
 getProxyEnv = do

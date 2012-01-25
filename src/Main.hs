@@ -31,9 +31,7 @@ ignore = EL.mapM_ (\s -> return ())
 
 main :: IO ()
 main = do
-  Just cfg <- confFile >>= loadConfig
-  forkIO . (withConfiguration cfg) . run_ . userstream $ (showIter =$ logIter)
---  forkIO . withCF . run_ . userstream $ (showIter =$ logIter)
+  forkIO . withConf . run_ . userstream $ (showIter =$ logIter)
   inputLoop
   where
     quit = T.pack "quit"
@@ -44,5 +42,5 @@ main = do
     loop s
       | s == quit  = return ()
       | s == empty = inputLoop
-      | otherwise  = do withCF . run_ $ statusesUpdate (DTE.encodeUtf8 s) ignore
+      | otherwise  = do withConf . run_ $ statusesUpdate (DTE.encodeUtf8 s) ignore
                         inputLoop
