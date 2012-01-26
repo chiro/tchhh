@@ -29,7 +29,10 @@ logIter = EL.mapM_ (\s -> do Just cfg <- confFile >>= loadConfig
                                else return ())
 
 showIter :: Enumeratee StreamingAPI String IO ()
-showIter = EL.mapM (\x -> showTL x >> (return $ (show x ++ "\n")))
+showIter = EL.mapM (\x -> do Just cfg <- confFile >>= loadConfig
+                             if isColor cfg
+                               then showTLwithColor x >> (return $ (show x ++ "\n"))
+                               else showTL x >> (return $ (show x ++ "\n")))
 
 ignore :: Iteratee a IO ()
 ignore = EL.mapM_ (\s -> return ())
