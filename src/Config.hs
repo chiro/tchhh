@@ -27,6 +27,7 @@ showB False = "false"
 data Configuration = Configuration {
   isColor :: Bool,
   isLogging :: Bool,
+  logFile :: ByteString,
   oauthToken :: ByteString,
   oauthTokenSecret :: ByteString,
   userId :: ByteString,
@@ -36,6 +37,7 @@ data Configuration = Configuration {
 writeConf :: Configuration -> String
 writeConf cfg = "color="            ++ showB    (isColor cfg)          ++ "\n"
              ++ "enableLog="        ++ showB    (isLogging cfg)        ++ "\n"
+             ++ "logFile="          ++ B.unpack (logFile cfg)          ++ "\n"
              ++ "oauthToken="       ++ B.unpack (oauthToken cfg)       ++ "\n"
              ++ "oauthTokenSecret=" ++ B.unpack (oauthTokenSecret cfg) ++ "\n"
              ++ "userId="           ++ B.unpack (userId cfg)           ++ "\n"
@@ -48,7 +50,8 @@ defaultConfig = Configuration {
   oauthToken       = "default",
   oauthTokenSecret = "default",
   userId           = "default",
-  screenName       = "default" }
+  screenName       = "default", 
+  logFile          = "log.txt" }
 
 readBool :: ByteString -> Maybe Bool
 readBool "true" = Just True
@@ -70,6 +73,7 @@ constructConfig ((name,val):rest) =
     "oauthTokenSecret" -> conf { oauthTokenSecret = val }
     "screenName"       -> conf { screenName = val }
     "userId"           -> conf { userId = val }
+    "logFile"          -> conf { logFile = val }
 
 getConfig :: ByteString -> Maybe Configuration
 getConfig content =
@@ -101,8 +105,7 @@ loadConfig fp = do
       content <- B.readFile fp
       case getConfig content of
         Just config -> return $ Just config
-        Nothing     -> do System.IO.putStrLn "hoy"
-                          return Nothing
+        Nothing     -> return Nothing
     else return Nothing
 
 saveConfig :: FilePath -> Configuration -> IO ()

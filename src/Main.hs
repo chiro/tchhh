@@ -17,11 +17,16 @@ import Data.Text as T
 import qualified Data.Text.IO as DTI
 import qualified Data.Text.Encoding as DTE
 
+import qualified Data.ByteString.Char8 as B
+
 import Control.Concurrent
 
 
 logIter :: Iteratee String IO ()
-logIter = EL.mapM_ (\s -> appendFile "./log.txt" s)
+logIter = EL.mapM_ (\s -> do Just cfg <- confFile >>= loadConfig
+                             if isLogging cfg
+                               then appendFile ("./" ++ (B.unpack $ logFile cfg)) s
+                               else return ())
 
 showIter :: Enumeratee StreamingAPI String IO ()
 showIter = EL.mapM (\x -> showTL x >> (return $ (show x ++ "\n")))
