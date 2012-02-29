@@ -7,6 +7,8 @@ import Web.Twitter.Enumerator
 import qualified Data.Text.Encoding as T
 import qualified Data.ByteString.Char8 as B
 
+import System.IO
+
 data Color = Black
            | Red
            | Green
@@ -42,12 +44,14 @@ showTLwithColor (SStatus s) = do
   putStr . escape . mapColor $ ((userId user `rem` 6) + 1)
   showTL (SStatus s)
   putStr $ escape White
+  hFlush stdout
 showTLwithColor (SRetweetedStatus rs) = do
   let rtuser = rsUser rs
   putStr . escape . mapColor $ ((userId rtuser `rem` 6) + 1)
   showTL (SRetweetedStatus rs)
   putStr $ escape White
-showTLwithColor s = showTL s
+  hFlush stdout
+showTLwithColor s = showTL s >> hFlush stdout
 
 showTL :: StreamingAPI -> IO ()
 showTL (SStatus s) = do
