@@ -1,14 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Common (
-  withConfiguration,
-  withConf,
-  initialConfig
+  getProxyEnv,
+  myOauthToken,
+  authorize
   ) where
 
 import Web.Twitter.Enumerator hiding (userId)
-
-import Config
 
 import Web.Authenticate.OAuth (OAuth(..), Credential(..))
 import qualified Web.Authenticate.OAuth as OA
@@ -26,8 +24,8 @@ import System.FilePath
 import System.Directory
 import System.Environment (getEnvironment)
 
-token :: OAuth
-token = OAuth { oauthServerName = "twitter"
+myOauthToken :: OAuth
+myOauthToken = OAuth { oauthServerName = "twitter"
               , oauthRequestUri = "http://twitter.com/oauth/request_token"
               , oauthAccessTokenUri = "http://twitter.com/oauth/access_token"
               , oauthAuthorizeUri = "http://twitter.com/oauth/authorize"
@@ -37,11 +35,6 @@ token = OAuth { oauthServerName = "twitter"
               , oauthCallback = Nothing
               }
 
-makeCred :: Configuration -> [(B.ByteString,B.ByteString)]
-makeCred conf = [("oauth_token",oauthToken conf),
-                 ("oauth_token_secret",oauthTokenSecret conf),
-                 ("user_id",userId conf),
-                 ("screen_name",screenName conf)]
 
 getPIN :: String -> IO String
 getPIN url = do
@@ -49,38 +42,6 @@ getPIN url = do
   putStr "> what was the PIN twitter provided you with? "
   hFlush stdout
   getLine
-
-initialConfig :: IO Configuration
-initialConfig = do
-  pr <- getProxyEnv
-  cred <- authorize pr token getPIN
-  return $ setValue defaultConfig (unCredential cred)
-  where
-    setValue cfg [] = cfg
-    setValue cfg ((name,val):xs) =
-      let c = setValue cfg xs in
-      case name of
-        "oauth_token" -> c { oauthToken = val }
-        "oauth_token_secret" -> c { oauthTokenSecret = val }
-        "screen_name" -> c { screenName = val }
-        "user_id"     -> c { userId     = val }
-
-
-withConfiguration :: Configuration -> TW a -> IO a
-withConfiguration cfg task = do
-  pr <- getProxyEnv
-  let cred = Credential $ makeCred cfg
-  let env = newEnv token
-  runTW env { twCredential = cred, twProxy = pr } $ task
-  
-withConf :: TW a -> IO a  
-withConf t = do
-  mcfg <- confFile >>= loadConfig
-  case mcfg of
-    Nothing -> do cfg <- initialConfig
-                  confFile >>= \f -> saveConfig f cfg
-                  withConfiguration cfg t
-    Just cfg -> withConfiguration cfg t
 
 getProxyEnv :: IO (Maybe Proxy)
 getProxyEnv = do
@@ -95,8 +56,8 @@ getProxyEnv = do
     parsePort (':':xs) = read xs
     parsePort xs = error $ "port number parse failed " ++ xs
 
-authorize :: Maybe Proxy -> OAuth -> (String -> IO String) -> IO Credential
-authorize pr oauth getPIN = do
+authorize :: Maybe Proxy -> OAuth -> IO Credential
+authorize pr oauth = do
   cred <- OA.getTemporaryCredentialProxy pr oauth
   let url = OA.authorizeUrl oauth cred
   pin <- getPIN url

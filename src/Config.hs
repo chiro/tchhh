@@ -4,9 +4,13 @@ module Config (
   Configuration(..),
   loadConfig,
   saveConfig,
+  createConfig,
   confFile,
-  defaultConfig
+  defaultConfig,
+  makeCred
   ) where
+
+import Common
 
 import Prelude hiding (takeWhile)
 
@@ -15,6 +19,8 @@ import qualified Data.Attoparsec.ByteString.Char8 as AC8 (takeWhile, skipSpace, 
 import qualified Data.Attoparsec.Combinator as AC
 
 import Data.ByteString.Char8 as B
+
+import Web.Authenticate.OAuth (OAuth(..), Credential(..))
 
 import System.IO
 import System.FilePath
@@ -32,16 +38,16 @@ data Configuration = Configuration {
   oauthTokenSecret :: ByteString,
   userId :: ByteString,
   screenName :: ByteString
-  } deriving (Show,Eq)
-
-writeConf :: Configuration -> String
-writeConf cfg = "color="            ++ showB    (isColor cfg)          ++ "\n"
-             ++ "enableLog="        ++ showB    (isLogging cfg)        ++ "\n"
-             ++ "logFile="          ++ B.unpack (logFile cfg)          ++ "\n"
-             ++ "oauthToken="       ++ B.unpack (oauthToken cfg)       ++ "\n"
+  } deriving (Eq)
+             
+instance Show Configuration where
+  show cfg = "color=" ++ showB (isColor cfg) ++ "\n"
+             ++ "enableLog=" ++ showB (isLogging cfg) ++ "\n"
+             ++ "logFile=" ++ B.unpack (logFile cfg) ++ "\n"
+             ++ "oauthToken=" ++ B.unpack (oauthToken cfg) ++ "\n"
              ++ "oauthTokenSecret=" ++ B.unpack (oauthTokenSecret cfg) ++ "\n"
-             ++ "userId="           ++ B.unpack (userId cfg)           ++ "\n"
-             ++ "screenName="       ++ B.unpack (screenName cfg)       ++ "\n"
+             ++ "userId=" ++ B.unpack (userId cfg) ++ "\n"
+             ++ "screenName=" ++ B.unpack (screenName cfg) ++ "\n"
 
 defaultConfig :: Configuration
 defaultConfig = Configuration {
@@ -82,19 +88,19 @@ getConfig content =
     Right cl    -> Just $ constructConfig cl
 
 configs :: Parser [(ByteString,ByteString)]
-configs = AC.many1 config
+configs = AC.many1 keyValue
 
 token :: Parser ByteString
 token = AC8.takeWhile (\c -> not (AC8.isSpace c || (c == '=')))
 
-config :: Parser (ByteString,ByteString)
-config = do AC8.skipSpace
-            name <- token
-            AC8.skipSpace
-            string "="
-            AC8.skipSpace
-            val <- token
-            return (name,val)
+keyValue :: Parser (ByteString,ByteString)
+keyValue = do AC8.skipSpace
+              name <- token
+              AC8.skipSpace
+              string "="
+              AC8.skipSpace
+              val <- token
+              return (name,val)
 
 loadConfig :: FilePath -> IO (Maybe Configuration)
 loadConfig fp = do
@@ -109,7 +115,7 @@ loadConfig fp = do
     else return Nothing
 
 saveConfig :: FilePath -> Configuration -> IO ()
-saveConfig file cfg = Prelude.writeFile file $ writeConf cfg
+saveConfig file cfg = Prelude.writeFile file $ show cfg
 
 ensureDirectoryExist :: FilePath -> IO FilePath
 ensureDirectoryExist dir = do
@@ -121,3 +127,26 @@ confdir = fmap (</> ".tchhh") getHomeDirectory >>= ensureDirectoryExist
 
 confFile :: IO FilePath
 confFile = fmap (</> "tchhh.conf") confdir
+
+createConfig :: IO Configuration
+createConfig = do
+  pr <- getProxyEnv
+  cred <- authorize pr myOauthToken
+  return $ setValue defaultConfig (unCredential cred)
+  where
+    setValue cfg l =
+      Prelude.foldr
+      (\(n,v) c ->
+        case n of
+          "oauth_token" -> c { oauthToken = v }
+          "oauth_token_secret" -> c { oauthTokenSecret = v }
+          "screen_name" -> c { screenName = v }
+          "user_id" -> c { userId = v}) cfg l
+
+
+makeCred :: Configuration -> Credential
+makeCred conf = Credential
+                [("oauth_token",oauthToken conf),
+                 ("oauth_token_secret",oauthTokenSecret conf),
+                 ("user_id",userId conf),
+                 ("screen_name",screenName conf)]
