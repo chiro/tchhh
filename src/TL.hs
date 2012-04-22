@@ -9,6 +9,8 @@ import qualified Data.ByteString.Char8 as B
 
 import System.IO
 
+import CharacterReference
+
 data Color = Black
            | Red
            | Green
@@ -58,14 +60,20 @@ showTL (SStatus s) = do
   let user = statusUser s
       sn = T.encodeUtf8 $ userScreenName user
       cnt = T.encodeUtf8 $ statusText s
-  B.putStrLn $ B.concat [sn, ": ", cnt]
+  case deref $ B.concat [sn, ": ", cnt] of
+    Left _ -> B.putStrLn "some error : deref"
+    Right bs -> B.putStrLn $ B.concat bs
 showTL (SRetweetedStatus rs) =
-  B.putStrLn $ B.concat ["Retweeted (by ", T.encodeUtf8 rtuser, "): ",
-                         T.encodeUtf8 user, ": ", T.encodeUtf8 text]
+  case deref text of
+    Left _ -> B.putStrLn "some error : deref"
+    RIght bs ->
+      B.putStrLn $ B.concat ["Retweeted (by ", T.encodeUtf8 rtuser, "): ",
+                             T.encodeUtf8 user, ": ", T.encodeUtf8 bs]
     where rtuser = userScreenName . rsUser $ rs
           status = rsRetweetedStatus rs
           user = userScreenName . statusUser $ status
           text = statusText status
+          content = B.concat ["Retweeted (by ", rtuser, "): ", user, ": ", T.encodeUtf8 text]
 showTL (SEvent ev) = do
   B.putStrLn $ B.concat [B.pack "Event: ", T.encodeUtf8 $ evEvent ev]
   putStr "> "
