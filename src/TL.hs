@@ -2,7 +2,7 @@
 
 module TL where
 
-import Web.Twitter.Enumerator
+import Web.Twitter.Types
 
 import qualified Data.Text.Encoding as T
 import qualified Data.ByteString.Char8 as B
@@ -56,17 +56,18 @@ showTLwithColor s = showTL s >> hFlush stdout
 showTL :: StreamingAPI -> IO ()
 showTL (SStatus s) = do
   let user = statusUser s
-      sn = B.pack $ userScreenName user
+      sn = T.encodeUtf8 $ userScreenName user
       cnt = T.encodeUtf8 $ statusText s
   B.putStrLn $ B.concat [sn, ": ", cnt]
 showTL (SRetweetedStatus rs) =
-  B.putStrLn $ B.concat ["Retweeted (by ", rtuser, "): ", user, ": ", T.encodeUtf8 text]
-    where rtuser = B.pack . userScreenName . rsUser $ rs
+  B.putStrLn $ B.concat ["Retweeted (by ", T.encodeUtf8 rtuser, "): ",
+                         T.encodeUtf8 user, ": ", T.encodeUtf8 text]
+    where rtuser = userScreenName . rsUser $ rs
           status = rsRetweetedStatus rs
-          user = B.pack . userScreenName . statusUser $ status
+          user = userScreenName . statusUser $ status
           text = statusText status
 showTL (SEvent ev) = do
-  putStrLn $ "Event: " ++ evEvent ev
+  B.putStrLn $ B.concat [B.pack "Event: ", T.encodeUtf8 $ evEvent ev]
   putStr "> "
   showEventTarget $ evTarget ev
   putStr "> "
@@ -81,21 +82,23 @@ showTL (SUnknown v) = return() --do putStrLn $ show v
 
 showEventTarget :: EventTarget -> IO ()
 showEventTarget (ETUser u) =
-  B.putStrLn $ B.concat ["@", screenName, " (followers:", fol, ", description:", T.encodeUtf8 . userDescription $ u, ")"]
-    where screenName = B.pack . userScreenName $ u
-          fol = B.pack . maybe "" show $ userFollowers u
+  B.putStrLn $ B.concat ["@", T.encodeUtf8 screenName, " (followers:", fol,
+                         ", description:",  description, ")"]
+    where screenName = userScreenName u
+          description = B.pack (maybe "" show $ userDescription u)
+          fol = B.pack $ maybe "" show $ userFollowers u
 showEventTarget (ETStatus s) =
-  B.putStrLn $ B.concat [user, ": ", T.encodeUtf8 text]
-    where user = B.pack . userScreenName . statusUser $ s
+  B.putStrLn $ B.concat [T.encodeUtf8 user, ": ", T.encodeUtf8 text]
+    where user = userScreenName . statusUser $ s
           text = statusText s
 showEventTarget (ETList l) =
-  B.putStrLn $ B.concat ["List: ", fullname, ": ", memberCount]
-    where fullname = B.pack . listFullName $ l
+  B.putStrLn $ B.concat ["List: ", T.encodeUtf8 fullname, ": ", memberCount]
+    where fullname = listFullName $ l
           memberCount = B.pack . show . listMemberCount $ l
 showEventTarget o = putStrLn $ "unknown object: " ++ show o
 
 showStatus :: Status -> String
 showStatus s = do
-  let stxt = B.unpack $ T.encodeUtf8 $ statusText s
-      sn   = userScreenName $ statusUser s
+  let stxt = B.unpack . T.encodeUtf8 $ statusText s
+      sn   = B.unpack . T.encodeUtf8 . userScreenName $ statusUser s
   sn ++ ":" ++ stxt

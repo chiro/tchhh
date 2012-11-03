@@ -2,40 +2,32 @@
 
 module Main where
 
+import Secret
 import Config
 import Common
 import TL
 
-import Web.Twitter.Enumerator
+import Control.Monad.Trans
 
-import System.IO
-
-import Web.Authenticate.OAuth (Credential(..))
-import Data.Enumerator hiding (map, filter, drop, span, iterate)
-import qualified Data.Enumerator.List as EL
-
-import Data.Text as T
-import qualified Data.Text.IO as T
-import qualified Data.Text.Encoding as DTE
+import qualified Data.Conduit as C
+import qualified Data.Conduit.List as CL
 
 import qualified Data.ByteString.Char8 as B
 
-import Control.Concurrent
+import Web.Twitter.Conduit
+import Web.Twitter.Types
 
-logIter :: Iteratee String IO ()
-logIter = EL.mapM_ (\s -> do Just cfg <- confFile >>= loadConfig
-                             if isLogging cfg
-                               then appendFile ("./" ++ (B.unpack $ logFile cfg)) s
-                               else return ())
+import Web.Authenticate.OAuth (Credential(..))
 
-showIter :: Enumeratee StreamingAPI String IO ()
-showIter = EL.mapM (\x -> do Just cfg <- confFile >>= loadConfig
-                             if isColor cfg
-                               then showTLwithColor x >> (return $ (show x ++ "\n"))
-                               else showTL x >> (return $ (show x ++ "\n")))
-
-ignore :: Iteratee a IO ()
-ignore = EL.mapM_ (\s -> return ())
+logAndShow :: StreamingAPI -> IO ()
+logAndShow s = do
+  Just cfg <- confFile >>= loadConfig
+  if isLogging cfg
+   then appendFile ("./" ++ (B.unpack $ logFile cfg)) (show s)
+    else return ()
+  if isColor cfg
+   then showTLwithColor s
+   else showTL s
 
 loadCfg :: FilePath -> IO Configuration
 loadCfg cp = do
@@ -43,7 +35,7 @@ loadCfg cp = do
   case mcfg of
     Just c -> return c
     Nothing -> createConfig
-    
+
 loadCredential :: Configuration -> Credential
 loadCredential cfg =
   Credential [("oauth_token", oauthToken cfg),
@@ -51,27 +43,29 @@ loadCredential cfg =
               ("user_id", Config.userId cfg),
               ("screen_name", screenName cfg)]
 
-withConfig :: Configuration -> TW a -> IO a
-withConfig cfg task = do
+-- inputLoop :: Configuration -> IO ()
+-- inputLoop cfg = do
+--   s <- T.getLine
+--   case s of
+--     "quit" -> return ()
+--     ""     -> inputLoop cfg
+--     otherwise -> do
+--       withConfig cfg . run_ $ statusesUpdate (DTE.encodeUtf8 s) ignore
+--       inputLoop cfg
+
+withCredential :: Credential -> TW WithToken (C.ResourceT IO) a -> IO a
+withCredential cred task = do
   pr <- getProxyEnv
-  let env = newEnv myOauthToken
-  runTW env { twCredential = makeCred cfg, twProxy = pr } $ task
-
-
-inputLoop :: Configuration -> IO ()
-inputLoop cfg = do
-  s <- T.getLine
-  case s of
-    "quit" -> return ()
-    ""     -> inputLoop cfg
-    otherwise -> do
-      withConfig cfg . run_ $ statusesUpdate (DTE.encodeUtf8 s) ignore
-      inputLoop cfg
+  let env = (setCredential tokens cred (TWInfo { twToken = NoAuth, twProxy = Nothing})) { twProxy = pr }
+  runTW env task
 
 main :: IO ()
 main = do
   cf <- confFile
   cfg <- loadCfg cf
+  let cred = loadCredential cfg
+  pr <- getProxyEnv
   saveConfig cf cfg
-  forkIO . withConfig cfg . run_ $ userstream (showIter =$ logIter)
-  inputLoop cfg
+  withCredential cred $ do
+    src <- userstream
+    src C.$$+- CL.mapM_ (lift . lift . showTL)

@@ -1,4 +1,4 @@
-all : Base.hs TL.hs Post.hs Main.hs
+all : Secret.hs Common.hs Config.hs TL.hs Main.sh
 	ghc --make Main
 
 clean :

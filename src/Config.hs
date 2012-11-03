@@ -10,17 +10,20 @@ module Config (
   makeCred
   ) where
 
+import Secret
 import Common
 
 import Prelude hiding (takeWhile)
+
+import Web.Authenticate.OAuth (Credential(..))
+
+import Network.HTTP.Conduit
 
 import Data.Attoparsec.ByteString
 import qualified Data.Attoparsec.ByteString.Char8 as AC8 (takeWhile, skipSpace, isSpace)
 import qualified Data.Attoparsec.Combinator as AC
 
 import Data.ByteString.Char8 as B
-
-import Web.Authenticate.OAuth (OAuth(..), Credential(..))
 
 import System.IO
 import System.FilePath
@@ -39,7 +42,7 @@ data Configuration = Configuration {
   userId :: ByteString,
   screenName :: ByteString
   } deriving (Eq)
-             
+
 instance Show Configuration where
   show cfg = "color=" ++ showB (isColor cfg) ++ "\n"
              ++ "enableLog=" ++ showB (isLogging cfg) ++ "\n"
@@ -56,7 +59,7 @@ defaultConfig = Configuration {
   oauthToken       = "default",
   oauthTokenSecret = "default",
   userId           = "default",
-  screenName       = "default", 
+  screenName       = "default",
   logFile          = "log.txt" }
 
 readBool :: ByteString -> Maybe Bool
@@ -131,7 +134,7 @@ confFile = fmap (</> "tchhh.conf") confdir
 createConfig :: IO Configuration
 createConfig = do
   pr <- getProxyEnv
-  cred <- authorize pr myOauthToken
+  cred <- authorizeAndMakeCred pr
   return $ setValue defaultConfig (unCredential cred)
   where
     setValue cfg l =
@@ -142,6 +145,10 @@ createConfig = do
           "oauth_token_secret" -> c { oauthTokenSecret = v }
           "screen_name" -> c { screenName = v }
           "user_id" -> c { userId = v}) cfg l
+    authorizeAndMakeCred pr =
+      withManager $ \mgr -> do
+        cred <- authorize pr tokens mgr
+        return cred
 
 
 makeCred :: Configuration -> Credential

@@ -12,20 +12,20 @@ Executable TCHHH
  build-depends:
      base >= 4 && < 5
      , mtl
-     , authenticate >= 0.9 && < 0.11
-     , enumerator >= 0.4.14 && < 0.5
      , network
-     , http-types
-     , http-enumerator >= 0.6.6
      , aeson >= 0.3.2.2
      , attoparsec >= 0.8.6.1
-     , attoparsec-enumerator
-     , twitter-enumerator
      , bytestring
      , text
      , containers
      , directory
      , filepath
+     , twitter-conduit
+     , twitter-types
+     , authenticate-oauth
+     , http-conduit
+     , resourcet
+     , conduit
      , case-insensitive
 
  Main-Is:       Main.hs
