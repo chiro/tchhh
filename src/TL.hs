@@ -73,7 +73,7 @@ showTL (SRetweetedStatus rs) =
           status = rsRetweetedStatus rs
           user = userScreenName . statusUser $ status
           text = statusText status
-          content = B.concat ["Retweeted (by ", rtuser, "): ", user, ": ", T.encodeUtf8 text]
+          content = B.concat ["Retweeted (by ", T.encodeUtf8 rtuser, "): ", T.encodeUtf8 user, ": ", T.encodeUtf8 text]
 showTL (SEvent ev) = do
   B.putStrLn $ B.concat [B.pack "Event: ", T.encodeUtf8 $ evEvent ev]
   putStr "> "

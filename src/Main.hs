@@ -68,4 +68,4 @@ main = do
   saveConfig cf cfg
   withCredential cred $ do
     src <- userstream
-    src C.$$+- CL.mapM_ (lift . lift . showTL)
+    src C.$$+- CL.mapM_ (lift . lift . logAndShow)
