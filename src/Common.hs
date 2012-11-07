@@ -11,21 +11,21 @@ import Web.Twitter.Conduit
 
 import Web.Authenticate.OAuth as OA
 
-import qualified Network.URI as URI
 import Network.HTTP.Conduit
+import qualified Network.URI as URI
 
-import qualified Data.Map as M
-import qualified Data.CaseInsensitive as CI
 import qualified Data.ByteString.Char8 as B
+import qualified Data.CaseInsensitive as CI
+import qualified Data.Map as M
 
 import Control.Applicative
 import Control.Monad.Trans
 import Control.Monad.Trans.Resource
 
-import System.IO
-import System.FilePath
 import System.Directory
 import System.Environment (getEnvironment)
+import System.FilePath
+import System.IO
 
 getPIN :: String -> IO String
 getPIN url = do

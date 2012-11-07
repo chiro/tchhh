@@ -2,9 +2,9 @@
 
 module Main where
 
-import Secret
-import Config
 import Common
+import Config
+import Secret
 import TL
 
 import Control.Monad.Trans
@@ -17,7 +17,7 @@ import qualified Data.ByteString.Char8 as B
 import Web.Twitter.Conduit
 import Web.Twitter.Types
 
-import Web.Authenticate.OAuth (Credential(..))
+import Web.Authenticate.OAuth (Credential (..))
 
 logAndShow :: StreamingAPI -> IO ()
 logAndShow s = do

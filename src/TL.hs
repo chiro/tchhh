@@ -4,8 +4,8 @@ module TL where
 
 import Web.Twitter.Types
 
-import qualified Data.Text.Encoding as T
 import qualified Data.ByteString.Char8 as B
+import qualified Data.Text.Encoding as T
 
 import System.IO
 

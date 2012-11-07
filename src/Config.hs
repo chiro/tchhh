@@ -10,37 +10,37 @@ module Config (
   makeCred
   ) where
 
-import Secret
 import Common
+import Secret
 
 import Prelude hiding (takeWhile)
 
-import Web.Authenticate.OAuth (Credential(..))
+import Web.Authenticate.OAuth (Credential (..))
 
 import Network.HTTP.Conduit
 
 import Data.Attoparsec.ByteString
-import qualified Data.Attoparsec.ByteString.Char8 as AC8 (takeWhile, skipSpace, isSpace)
+import qualified Data.Attoparsec.ByteString.Char8 as AC8 (isSpace, skipSpace, takeWhile)
 import qualified Data.Attoparsec.Combinator as AC
 
 import Data.ByteString.Char8 as B
 
-import System.IO
-import System.FilePath
 import System.Directory
+import System.FilePath
+import System.IO
 
 showB :: Bool -> String
 showB True = "true"
 showB False = "false"
 
 data Configuration = Configuration {
-  isColor :: Bool,
-  isLogging :: Bool,
-  logFile :: ByteString,
-  oauthToken :: ByteString,
+  isColor          :: Bool,
+  isLogging        :: Bool,
+  logFile          :: ByteString,
+  oauthToken       :: ByteString,
   oauthTokenSecret :: ByteString,
-  userId :: ByteString,
-  screenName :: ByteString
+  userId           :: ByteString,
+  screenName       :: ByteString
   } deriving (Eq)
 
 instance Show Configuration where

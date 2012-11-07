@@ -9,7 +9,7 @@ import Data.ByteString.Char8 as B
 import Control.Applicative
 
 import Data.Attoparsec.ByteString as AC
-import Data.Attoparsec.ByteString.Char8 as AC8 (string, anyChar, parseOnly)
+import Data.Attoparsec.ByteString.Char8 as AC8 (anyChar, parseOnly, string)
 
 reference :: Parser ByteString
 reference = (do AC8.string "&lt;"
