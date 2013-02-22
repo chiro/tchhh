@@ -14,23 +14,20 @@ import Secret
 
 import Prelude hiding (takeWhile)
 
-import Web.Authenticate.OAuth (Credential (..))
+import Control.Applicative ((<$>), (<*>), empty)
+
+import qualified Data.Aeson as AE
+import Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy.Char8 as BL
+import Data.Default
 
 import Network.HTTP.Conduit
-
-import Data.Attoparsec.ByteString
-import qualified Data.Attoparsec.ByteString.Char8 as AC8 (isSpace, skipSpace, takeWhile)
-import qualified Data.Attoparsec.Combinator as AC
-import Data.ByteString.Char8 as B
-import Data.Default
 
 import System.Directory
 import System.FilePath
 import System.IO
 
-showB :: Bool -> String
-showB True = "true"
-showB False = "false"
+import Web.Authenticate.OAuth (Credential (..))
 
 data Configuration = Configuration {
   isColor          :: Bool,
@@ -39,17 +36,7 @@ data Configuration = Configuration {
   userId           :: ByteString,
   screenName       :: ByteString,
   logFile          :: Maybe ByteString
-  } deriving (Eq)
-
-instance Show Configuration where
-  show cfg = "color=" ++ showB (isColor cfg) ++ "\n"
-             ++ (case logFile cfg of
-                    Just file -> B.unpack file
-                    Nothing -> "") ++ "\n"
-             ++ "oauthToken=" ++ B.unpack (oauthToken cfg) ++ "\n"
-             ++ "oauthTokenSecret=" ++ B.unpack (oauthTokenSecret cfg) ++ "\n"
-             ++ "userId=" ++ B.unpack (userId cfg) ++ "\n"
-             ++ "screenName=" ++ B.unpack (screenName cfg) ++ "\n"
+  } deriving (Eq, Show)
 
 instance Default Configuration where
   def = Configuration {
@@ -61,45 +48,28 @@ instance Default Configuration where
     logFile = Nothing
     }
 
-readBool :: ByteString -> Maybe Bool
-readBool "true" = Just True
-readBool "false" = Just False
-readBool _ = Nothing
+instance AE.ToJSON Configuration where
+  toJSON (Configuration isColor oauthToken oauthTokenSecret userId screenName logFile) =
+    AE.object [
+      "color" AE..= isColor,
+      "oauthToken" AE..= oauthToken,
+      "oauthTokenSecret" AE..= oauthTokenSecret,
+      "userId" AE..= userId,
+      "screenName" AE..= screenName,
+      "logFile" AE..= logFile
+      ]
+instance AE.FromJSON Configuration where
+  parseJSON (AE.Object v) = Configuration <$>
+                         v AE..: "color" <*>
+                         v AE..: "oauthToken" <*>
+                         v AE..: "oauthTokenSecret" <*>
+                         v AE..: "userId" <*>
+                         v AE..: "screenName" <*>
+                         v AE..:? "logFile"
+  parseJSON _ = Control.Applicative.empty
 
-constructConfig :: [(ByteString,ByteString)] -> Configuration
-constructConfig [] = def
-constructConfig ((name,val):rest) =
-  let conf = constructConfig rest in
-  case name of
-    "color" -> case readBool val of
-      Just b           -> conf { isColor = b }
-      Nothing          -> conf
-    "oauthToken"       -> conf { oauthToken = val }
-    "oauthTokenSecret" -> conf { oauthTokenSecret = val }
-    "screenName"       -> conf { screenName = val }
-    "userId"           -> conf { userId = val }
-    "logFile"          -> conf { logFile = Just val }
-
-getConfig :: ByteString -> Maybe Configuration
-getConfig content =
-  case parseOnly configs content of
-    Left errmsg -> Nothing
-    Right cl    -> Just $ constructConfig cl
-
-configs :: Parser [(ByteString,ByteString)]
-configs = AC.many1 keyValue
-
-token :: Parser ByteString
-token = AC8.takeWhile (\c -> not (AC8.isSpace c || (c == '=')))
-
-keyValue :: Parser (ByteString,ByteString)
-keyValue = do AC8.skipSpace
-              name <- token
-              AC8.skipSpace
-              string "="
-              AC8.skipSpace
-              val <- token
-              return (name,val)
+getConfig :: B.ByteString -> Maybe Configuration
+getConfig conf = AE.decode (BL.pack (B.unpack conf))
 
 loadConfig :: FilePath -> IO (Maybe Configuration)
 loadConfig fp = do
@@ -114,7 +84,7 @@ loadConfig fp = do
     else return Nothing
 
 saveConfig :: FilePath -> Configuration -> IO ()
-saveConfig file cfg = Prelude.writeFile file $ show cfg
+saveConfig file cfg = B.writeFile file (B.pack . BL.unpack $ AE.encode cfg)
 
 ensureDirectoryExist :: FilePath -> IO FilePath
 ensureDirectoryExist dir = do
@@ -125,27 +95,21 @@ confdir :: IO FilePath
 confdir = fmap (</> ".tchhh") getHomeDirectory >>= ensureDirectoryExist
 
 confFile :: IO FilePath
-confFile = fmap (</> "tchhh.conf") confdir
+confFile = fmap (</> "tchhh.json") confdir
 
 createConfig :: IO Configuration
 createConfig = do
   pr <- getProxyEnv
-  cred <- authorizeAndMakeCred pr
+  cred <- withManager $ \mgr -> authorize pr tokens mgr
   return $ setValue def (unCredential cred)
   where
-    setValue cfg l =
-      Prelude.foldr
-      (\(n,v) c ->
-        case n of
-          "oauth_token" -> c { oauthToken = v }
-          "oauth_token_secret" -> c { oauthTokenSecret = v }
-          "screen_name" -> c { screenName = v }
-          "user_id" -> c { userId = v}) cfg l
-    authorizeAndMakeCred pr =
-      withManager $ \mgr -> do
-        cred <- authorize pr tokens mgr
-        return cred
-
+    setValue = Prelude.foldr
+               (\(n,v) c ->
+                 case n of
+                   "oauth_token" -> c { oauthToken = v }
+                   "oauth_token_secret" -> c { oauthTokenSecret = v }
+                   "screen_name" -> c { screenName = v }
+                   "user_id" -> c { userId = v})
 
 makeCred :: Configuration -> Credential
 makeCred conf = Credential

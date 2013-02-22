@@ -2,14 +2,14 @@
 
 module TL where
 
-import Web.Twitter.Types
+import CharacterReference
 
 import qualified Data.ByteString.Char8 as B
 import qualified Data.Text.Encoding as T
 
 import System.IO
 
-import CharacterReference
+import Web.Twitter.Types
 
 data Color = Black
            | Red
@@ -81,11 +81,9 @@ showTL (SEvent ev) = do
   putStr "> "
   showEventTarget $ evSource ev
   maybe (return ()) (\e -> putStr "> " >> showEventTarget e) $ evTargetObject ev
-showTL (SDelete d) = do
-  putStrLn $ "Delete: " ++ (show $ delUserId d) ++ " " ++ (show $ delId d)
-showTL (SFriends f) = do
-  putStrLn "sfriends"
-showTL (SUnknown v) = return() --do putStrLn $ show v
+showTL (SDelete d) = putStrLn ("Delete: " ++ show (delUserId d) ++ " " ++ show (delId d))
+showTL (SFriends f) = return () -- putStrLn $ show f
+showTL (SUnknown v) = return () -- putStrLn $ show v
 
 
 showEventTarget :: EventTarget -> IO ()
@@ -101,8 +99,8 @@ showEventTarget (ETStatus s) =
           text = statusText s
 showEventTarget (ETList l) =
   B.putStrLn $ B.concat ["List: ", T.encodeUtf8 fullname, ": ", memberCount]
-    where fullname = listFullName $ l
-          memberCount = B.pack . show . listMemberCount $ l
+    where fullname = listFullName l
+          memberCount = B.pack . show $ listMemberCount l
 showEventTarget o = putStrLn $ "unknown object: " ++ show o
 
 showStatus :: Status -> String

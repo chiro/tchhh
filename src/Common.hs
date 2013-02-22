@@ -5,27 +5,26 @@ module Common (
   authorize
   ) where
 
-
 import Secret (tokens)
-import Web.Twitter.Conduit
-
-import Web.Authenticate.OAuth as OA
-
-import Network.HTTP.Conduit
-import qualified Network.URI as URI
-
-import qualified Data.ByteString.Char8 as B
-import qualified Data.CaseInsensitive as CI
-import qualified Data.Map as M
 
 import Control.Applicative
 import Control.Monad.Trans
 import Control.Monad.Trans.Resource
 
+import qualified Data.ByteString.Char8 as B
+import qualified Data.CaseInsensitive as CI
+import qualified Data.Map as M
+
+import Network.HTTP.Conduit
+import qualified Network.URI as URI
+
 import System.Directory
 import System.Environment (getEnvironment)
 import System.FilePath
 import System.IO
+
+import Web.Authenticate.OAuth as OA
+import Web.Twitter.Conduit
 
 getPIN :: String -> IO String
 getPIN url = do

@@ -7,21 +7,18 @@ import Config
 import Secret
 import TL
 
+import Control.Monad (when)
 import Control.Monad.Trans
 
+import qualified Data.ByteString.Char8 as B
 import qualified Data.Conduit as C
 import qualified Data.Conduit.List as CL
-
-import qualified Data.ByteString.Char8 as B
-
 import Data.Default
-
 import Data.Maybe (fromJust)
 
+import Web.Authenticate.OAuth (Credential (..))
 import Web.Twitter.Conduit
 import Web.Twitter.Types
-
-import Web.Authenticate.OAuth (Credential (..))
 
 isLogging :: Configuration -> Bool
 isLogging cfg = case logFile cfg of
@@ -31,9 +28,7 @@ isLogging cfg = case logFile cfg of
 logAndShow :: StreamingAPI -> IO ()
 logAndShow s = do
   Just cfg <- confFile >>= loadConfig
-  if isLogging cfg
-   then appendFile ("./" ++ (B.unpack . fromJust $ logFile cfg)) (show s)
-    else return ()
+  when (isLogging cfg) (appendFile ("./" ++ (B.unpack . fromJust $ logFile cfg)) (show s))
   if isColor cfg
    then showTLwithColor s
    else showTL s
