@@ -6,7 +6,6 @@ module Config (
   saveConfig,
   createConfig,
   confFile,
-  defaultConfig,
   makeCred
   ) where
 
@@ -22,8 +21,8 @@ import Network.HTTP.Conduit
 import Data.Attoparsec.ByteString
 import qualified Data.Attoparsec.ByteString.Char8 as AC8 (isSpace, skipSpace, takeWhile)
 import qualified Data.Attoparsec.Combinator as AC
-
 import Data.ByteString.Char8 as B
+import Data.Default
 
 import System.Directory
 import System.FilePath
@@ -35,32 +34,32 @@ showB False = "false"
 
 data Configuration = Configuration {
   isColor          :: Bool,
-  isLogging        :: Bool,
-  logFile          :: ByteString,
   oauthToken       :: ByteString,
   oauthTokenSecret :: ByteString,
   userId           :: ByteString,
-  screenName       :: ByteString
+  screenName       :: ByteString,
+  logFile          :: Maybe ByteString
   } deriving (Eq)
 
 instance Show Configuration where
   show cfg = "color=" ++ showB (isColor cfg) ++ "\n"
-             ++ "enableLog=" ++ showB (isLogging cfg) ++ "\n"
-             ++ "logFile=" ++ B.unpack (logFile cfg) ++ "\n"
+             ++ (case logFile cfg of
+                    Just file -> B.unpack file
+                    Nothing -> "") ++ "\n"
              ++ "oauthToken=" ++ B.unpack (oauthToken cfg) ++ "\n"
              ++ "oauthTokenSecret=" ++ B.unpack (oauthTokenSecret cfg) ++ "\n"
              ++ "userId=" ++ B.unpack (userId cfg) ++ "\n"
              ++ "screenName=" ++ B.unpack (screenName cfg) ++ "\n"
 
-defaultConfig :: Configuration
-defaultConfig = Configuration {
-  isColor          = False,
-  isLogging        = False,
-  oauthToken       = "default",
-  oauthTokenSecret = "default",
-  userId           = "default",
-  screenName       = "default",
-  logFile          = "log.txt" }
+instance Default Configuration where
+  def = Configuration {
+    isColor = False,
+    oauthToken = "no token",
+    oauthTokenSecret = "no secret",
+    userId = "",
+    screenName = "",
+    logFile = Nothing
+    }
 
 readBool :: ByteString -> Maybe Bool
 readBool "true" = Just True
@@ -68,21 +67,18 @@ readBool "false" = Just False
 readBool _ = Nothing
 
 constructConfig :: [(ByteString,ByteString)] -> Configuration
-constructConfig [] = defaultConfig
+constructConfig [] = def
 constructConfig ((name,val):rest) =
   let conf = constructConfig rest in
   case name of
     "color" -> case readBool val of
       Just b           -> conf { isColor = b }
       Nothing          -> conf
-    "enableLog" -> case readBool val of
-      Just b           -> conf { isLogging = b }
-      Nothing          -> conf
     "oauthToken"       -> conf { oauthToken = val }
     "oauthTokenSecret" -> conf { oauthTokenSecret = val }
     "screenName"       -> conf { screenName = val }
     "userId"           -> conf { userId = val }
-    "logFile"          -> conf { logFile = val }
+    "logFile"          -> conf { logFile = Just val }
 
 getConfig :: ByteString -> Maybe Configuration
 getConfig content =
@@ -135,7 +131,7 @@ createConfig :: IO Configuration
 createConfig = do
   pr <- getProxyEnv
   cred <- authorizeAndMakeCred pr
-  return $ setValue defaultConfig (unCredential cred)
+  return $ setValue def (unCredential cred)
   where
     setValue cfg l =
       Prelude.foldr

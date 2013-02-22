@@ -14,16 +14,25 @@ import qualified Data.Conduit.List as CL
 
 import qualified Data.ByteString.Char8 as B
 
+import Data.Default
+
+import Data.Maybe (fromJust)
+
 import Web.Twitter.Conduit
 import Web.Twitter.Types
 
 import Web.Authenticate.OAuth (Credential (..))
 
+isLogging :: Configuration -> Bool
+isLogging cfg = case logFile cfg of
+  Just _ -> True
+  Nothing -> False
+
 logAndShow :: StreamingAPI -> IO ()
 logAndShow s = do
   Just cfg <- confFile >>= loadConfig
   if isLogging cfg
-   then appendFile ("./" ++ (B.unpack $ logFile cfg)) (show s)
+   then appendFile ("./" ++ (B.unpack . fromJust $ logFile cfg)) (show s)
     else return ()
   if isColor cfg
    then showTLwithColor s
@@ -43,20 +52,10 @@ loadCredential cfg =
               ("user_id", Config.userId cfg),
               ("screen_name", screenName cfg)]
 
--- inputLoop :: Configuration -> IO ()
--- inputLoop cfg = do
---   s <- T.getLine
---   case s of
---     "quit" -> return ()
---     ""     -> inputLoop cfg
---     otherwise -> do
---       withConfig cfg . run_ $ statusesUpdate (DTE.encodeUtf8 s) ignore
---       inputLoop cfg
-
 withCredential :: Credential -> TW WithToken (C.ResourceT IO) a -> IO a
 withCredential cred task = do
   pr <- getProxyEnv
-  let env = (setCredential tokens cred (TWInfo { twToken = NoAuth, twProxy = Nothing})) { twProxy = pr }
+  let env = (setCredential tokens cred def) { twProxy = pr }
   runTW env task
 
 main :: IO ()
