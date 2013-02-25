@@ -64,11 +64,11 @@ showTL (SStatus s) = do
     Left _ -> B.putStrLn "some error : deref"
     Right bs -> B.putStrLn $ B.concat bs
 showTL (SRetweetedStatus rs) =
-  case deref text of
+  case deref (T.encodeUtf8 text) of
     Left _ -> B.putStrLn "some error : deref"
-    RIght bs ->
+    Right bs ->
       B.putStrLn $ B.concat ["Retweeted (by ", T.encodeUtf8 rtuser, "): ",
-                             T.encodeUtf8 user, ": ", T.encodeUtf8 bs]
+                             T.encodeUtf8 user, ": ", B.concat bs]
     where rtuser = userScreenName . rsUser $ rs
           status = rsRetweetedStatus rs
           user = userScreenName . statusUser $ status
