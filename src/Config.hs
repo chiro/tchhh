@@ -20,6 +20,8 @@ import qualified Data.Aeson as AE
 import Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as BL
 import Data.Default
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 
 import Network.HTTP.Conduit
 
@@ -31,11 +33,11 @@ import Web.Authenticate.OAuth (Credential (..))
 
 data Configuration = Configuration {
   isColor          :: Bool,
-  oauthToken       :: ByteString,
-  oauthTokenSecret :: ByteString,
-  userId           :: ByteString,
-  screenName       :: ByteString,
-  logFile          :: Maybe ByteString
+  oauthToken       :: T.Text,
+  oauthTokenSecret :: T.Text,
+  userId           :: T.Text,
+  screenName       :: T.Text,
+  logFile          :: Maybe T.Text
   } deriving (Eq, Show)
 
 instance Default Configuration where
@@ -47,6 +49,9 @@ instance Default Configuration where
     screenName = "",
     logFile = Nothing
     }
+
+instance AE.ToJSON ByteString where
+  toJSON = AE.toJSON . B.unpack
 
 instance AE.ToJSON Configuration where
   toJSON (Configuration isColor oauthToken oauthTokenSecret userId screenName logFile) =
@@ -101,7 +106,7 @@ createConfig :: IO Configuration
 createConfig = do
   pr <- getProxyEnv
   cred <- withManager $ \mgr -> authorize pr tokens mgr
-  return $ setValue def (unCredential cred)
+  return $ setValue def (Prelude.map (\(a,b) -> (a, TE.decodeUtf8 b)) (unCredential cred))
   where
     setValue = Prelude.foldr
                (\(n,v) c ->
@@ -109,11 +114,11 @@ createConfig = do
                    "oauth_token" -> c { oauthToken = v }
                    "oauth_token_secret" -> c { oauthTokenSecret = v }
                    "screen_name" -> c { screenName = v }
-                   "user_id" -> c { userId = v})
+                   "user_id" -> c { userId = v })
 
 makeCred :: Configuration -> Credential
-makeCred conf = Credential
-                [("oauth_token",oauthToken conf),
-                 ("oauth_token_secret",oauthTokenSecret conf),
-                 ("user_id",userId conf),
-                 ("screen_name",screenName conf)]
+makeCred conf =
+  Credential [("oauth_token", TE.encodeUtf8 $ oauthToken conf),
+              ("oauth_token_secret", TE.encodeUtf8 $ oauthTokenSecret conf),
+              ("user_id", TE.encodeUtf8 $ userId conf),
+              ("screen_name", TE.encodeUtf8 $ screenName conf)]

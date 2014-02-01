@@ -8,6 +8,7 @@ import Secret
 import TL
 
 import Control.Monad (when)
+import Control.Monad.Logger
 import Control.Monad.Trans
 
 import qualified Data.ByteString.Char8 as B
@@ -15,6 +16,7 @@ import qualified Data.Conduit as C
 import qualified Data.Conduit.List as CL
 import Data.Default
 import Data.Maybe (fromJust)
+import qualified Data.Text as T
 
 import Web.Authenticate.OAuth (Credential (..))
 import Web.Twitter.Conduit
@@ -28,7 +30,7 @@ isLogging cfg = case logFile cfg of
 logAndShow :: StreamingAPI -> IO ()
 logAndShow s = do
   Just cfg <- confFile >>= loadConfig
-  when (isLogging cfg) (appendFile ("./" ++ (B.unpack . fromJust $ logFile cfg)) (show s))
+  when (isLogging cfg) (appendFile ("./" ++ (T.unpack . fromJust $ logFile cfg)) (show s))
   if isColor cfg
    then showTLwithColor s
    else showTL s
@@ -40,26 +42,19 @@ loadCfg cp = do
     Just c -> return c
     Nothing -> createConfig
 
-loadCredential :: Configuration -> Credential
-loadCredential cfg =
-  Credential [("oauth_token", oauthToken cfg),
-              ("oauth_token_secret", oauthTokenSecret cfg),
-              ("user_id", Config.userId cfg),
-              ("screen_name", screenName cfg)]
-
-withCredential :: Credential -> TW WithToken (C.ResourceT IO) a -> IO a
+withCredential :: Credential -> TW (C.ResourceT (LoggingT IO)) a -> LoggingT IO a
 withCredential cred task = do
-  pr <- getProxyEnv
+  pr <- liftIO getProxyEnv
   let env = (setCredential tokens cred def) { twProxy = pr }
   runTW env task
 
 main :: IO ()
-main = do
-  cf <- confFile
-  cfg <- loadCfg cf
-  let cred = loadCredential cfg
-  pr <- getProxyEnv
-  saveConfig cf cfg
+main = runStderrLoggingT $ do
+  cf <- liftIO confFile
+  cfg <- liftIO $ loadCfg cf
+  let cred = makeCred cfg
+  pr <- liftIO getProxyEnv
+  liftIO $ saveConfig cf cfg
   withCredential cred $ do
     src <- userstream
-    src C.$$+- CL.mapM_ (lift . lift . logAndShow)
+    src C.$$+- CL.mapM_ (\x -> liftIO (logAndShow x))
