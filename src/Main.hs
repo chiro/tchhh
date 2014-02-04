@@ -41,7 +41,7 @@ loadCfg cp = do
     Just c -> return c
     Nothing -> error "Configuration file is not found!"
 
-withCredential :: Credential -> Configuration -> TW (C.ResourceT (LoggingT IO)) a -> LoggingT IO a
+withCredential :: Credential -> Configuration -> TW (C.ResourceT (NoLoggingT IO)) a -> NoLoggingT IO a
 withCredential cred cfg task = do
   pr <- liftIO getProxyEnv
   let tokens = getTokens (B.pack $ consumerToken cfg) (B.pack $ consumerSecret cfg)
@@ -49,7 +49,7 @@ withCredential cred cfg task = do
   runTW env task
 
 main :: IO ()
-main = runStderrLoggingT $ do
+main = runNoLoggingT $ do
   cf <- liftIO confFile
   cfg <- liftIO $ loadCfg cf
   let cred = makeCred cfg
