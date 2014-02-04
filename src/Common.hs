@@ -2,10 +2,9 @@
 
 module Common (
   getProxyEnv,
-  authorize
+  authorize,
+  getTokens
   ) where
-
-import Secret (tokens)
 
 import Control.Applicative
 import Control.Monad.Trans
@@ -25,6 +24,20 @@ import System.IO
 
 import Web.Authenticate.OAuth as OA
 import Web.Twitter.Conduit
+
+getTokens :: B.ByteString -- consumer key
+             -> B.ByteString -- consumer secret
+             -> OA.OAuth
+getTokens ct cs =
+  def { oauthServerName = "twitter"
+      , oauthRequestUri = "http://twitter.com/oauth/request_token"
+      , oauthAccessTokenUri = "http://twitter.com/oauth/access_token"
+      , oauthAuthorizeUri = "http://twitter.com/oauth/authorize"
+      , oauthConsumerKey = ct
+      , oauthConsumerSecret = cs
+      , oauthSignatureMethod = HMACSHA1
+      , oauthCallback = Nothing
+      }
 
 getPIN :: String -> IO String
 getPIN url = do

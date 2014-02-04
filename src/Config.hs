@@ -4,13 +4,12 @@ module Config (
   Configuration(..),
   loadConfig,
   saveConfig,
-  createConfig,
+--  createConfig,
   confFile,
   makeCred
   ) where
 
 import Common
-import Secret
 
 import Prelude hiding (takeWhile)
 
@@ -37,6 +36,8 @@ data Configuration = Configuration {
   oauthTokenSecret :: T.Text,
   userId           :: T.Text,
   screenName       :: T.Text,
+  consumerToken    :: String,
+  consumerSecret   :: String,
   logFile          :: Maybe T.Text
   } deriving (Eq, Show)
 
@@ -47,6 +48,8 @@ instance Default Configuration where
     oauthTokenSecret = "no secret",
     userId = "",
     screenName = "",
+    consumerToken = "",
+    consumerSecret = "",
     logFile = Nothing
     }
 
@@ -54,13 +57,15 @@ instance AE.ToJSON ByteString where
   toJSON = AE.toJSON . B.unpack
 
 instance AE.ToJSON Configuration where
-  toJSON (Configuration isColor oauthToken oauthTokenSecret userId screenName logFile) =
+  toJSON (Configuration isColor oauthToken oauthTokenSecret userId screenName consumerToken consumerSecret logFile) =
     AE.object [
       "color" AE..= isColor,
       "oauthToken" AE..= oauthToken,
       "oauthTokenSecret" AE..= oauthTokenSecret,
       "userId" AE..= userId,
       "screenName" AE..= screenName,
+      "consumerToken" AE..= consumerToken,
+      "consumerSecret" AE..= consumerSecret,
       "logFile" AE..= logFile
       ]
 instance AE.FromJSON Configuration where
@@ -70,6 +75,8 @@ instance AE.FromJSON Configuration where
                          v AE..: "oauthTokenSecret" <*>
                          v AE..: "userId" <*>
                          v AE..: "screenName" <*>
+                         v AE..: "consumerToken" <*>
+                         v AE..: "consumerSecret" <*>
                          v AE..:? "logFile"
   parseJSON _ = Control.Applicative.empty
 
@@ -102,19 +109,20 @@ confdir = fmap (</> ".tchhh") getHomeDirectory >>= ensureDirectoryExist
 confFile :: IO FilePath
 confFile = fmap (</> "tchhh.json") confdir
 
-createConfig :: IO Configuration
-createConfig = do
-  pr <- getProxyEnv
-  cred <- withManager $ \mgr -> authorize pr tokens mgr
-  return $ setValue def (Prelude.map (\(a,b) -> (a, TE.decodeUtf8 b)) (unCredential cred))
-  where
-    setValue = Prelude.foldr
-               (\(n,v) c ->
-                 case n of
-                   "oauth_token" -> c { oauthToken = v }
-                   "oauth_token_secret" -> c { oauthTokenSecret = v }
-                   "screen_name" -> c { screenName = v }
-                   "user_id" -> c { userId = v })
+-- TODO: Impl.
+-- createConfig :: IO Configuration
+-- createConfig = do
+--   pr <- getProxyEnv
+--   cred <- withManager $ \mgr -> authorize pr tokens mgr
+--   return $ setValue def (Prelude.map (\(a,b) -> (a, TE.decodeUtf8 b)) (unCredential cred))
+--   where
+--     setValue = Prelude.foldr
+--                (\(n,v) c ->
+--                  case n of
+--                    "oauth_token" -> c { oauthToken = v }
+--                    "oauth_token_secret" -> c { oauthTokenSecret = v }
+--                    "screen_name" -> c { screenName = v }
+--                    "user_id" -> c { userId = v })
 
 makeCred :: Configuration -> Credential
 makeCred conf =

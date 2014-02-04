@@ -4,7 +4,6 @@ module Main where
 
 import Common
 import Config
-import Secret
 import TL
 
 import Control.Monad (when)
@@ -40,11 +39,12 @@ loadCfg cp = do
   mcfg <- loadConfig cp
   case mcfg of
     Just c -> return c
-    Nothing -> createConfig
+    Nothing -> error "Configuration file is not found!"
 
-withCredential :: Credential -> TW (C.ResourceT (LoggingT IO)) a -> LoggingT IO a
-withCredential cred task = do
+withCredential :: Credential -> Configuration -> TW (C.ResourceT (LoggingT IO)) a -> LoggingT IO a
+withCredential cred cfg task = do
   pr <- liftIO getProxyEnv
+  let tokens = getTokens (B.pack $ consumerToken cfg) (B.pack $ consumerSecret cfg)
   let env = (setCredential tokens cred def) { twProxy = pr }
   runTW env task
 
@@ -55,6 +55,6 @@ main = runStderrLoggingT $ do
   let cred = makeCred cfg
   pr <- liftIO getProxyEnv
   liftIO $ saveConfig cf cfg
-  withCredential cred $ do
+  withCredential cred cfg $ do
     src <- userstream
     src C.$$+- CL.mapM_ (\x -> liftIO (logAndShow x))
