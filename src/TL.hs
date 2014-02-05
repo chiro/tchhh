@@ -7,51 +7,39 @@ import CharacterReference
 import qualified Data.ByteString.Char8 as B
 import qualified Data.Text.Encoding as T
 
+import System.Console.ANSI
 import System.IO
 
 import Web.Twitter.Types
 
-data Color = Black
-           | Red
-           | Green
-           | Yellow
-           | Blue
-           | Magenta
-           | Cyan
-           | White
+getColor :: Integer -> Color
+getColor 0 = Black
+getColor 1 = Red
+getColor 2 = Green
+getColor 3 = Yellow
+getColor 4 = Blue
+getColor 5 = Magenta
+getColor 6 = Cyan
+getColor _ = White
 
-escape :: Color -> String
-escape Black   = "\027[30m"
-escape Red     = "\027[31m"
-escape Green   = "\027[32m"
-escape Yellow  = "\027[33m"
-escape Blue    = "\027[34m"
-escape Magenta = "\027[35m"
-escape Cyan    = "\027[36m"
-escape White   = "\027[37m"
+getColorIntensity :: Integer -> ColorIntensity
+getColorIntensity i = if i `rem` 2 == 0 then Dull else Vivid
 
-mapColor :: Integer -> Color
-mapColor 0 = Black
-mapColor 1 = Red
-mapColor 2 = Green
-mapColor 3 = Yellow
-mapColor 4 = Blue
-mapColor 5 = Magenta
-mapColor 6 = Cyan
-mapColor 7 = White
+getSGR :: Integer -> SGR
+getSGR user = SetColor Foreground (getColorIntensity user) (getColor (user `rem` 7))
 
 showTLwithColor :: StreamingAPI -> IO ()
 showTLwithColor (SStatus s) = do
   let user = statusUser s
-  putStr . escape . mapColor $ ((userId user `rem` 6) + 1)
+  setSGR [getSGR ((userId user) + 1)]
   showTL (SStatus s)
-  putStr $ escape White
+  setSGR []
   hFlush stdout
 showTLwithColor (SRetweetedStatus rs) = do
   let rtuser = rsUser rs
-  putStr . escape . mapColor $ ((userId rtuser `rem` 6) + 1)
+  setSGR [getSGR ((userId rtuser) + 1)]
   showTL (SRetweetedStatus rs)
-  putStr $ escape White
+  setSGR []
   hFlush stdout
 showTLwithColor s = showTL s >> hFlush stdout
 
