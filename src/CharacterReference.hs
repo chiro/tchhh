@@ -6,15 +6,15 @@ module CharacterReference (
 
 import Control.Applicative
 
-import qualified Data.Attoparsec.ByteString as AC
-import Data.Attoparsec.ByteString.Char8 (parseOnly, string)
-import Data.ByteString.Char8 (ByteString())
+import qualified Data.Attoparsec.Text as AC
+import Data.Attoparsec.Text (parseOnly, string)
+import qualified Data.Text as T
 
-reference :: AC.Parser ByteString
+reference :: AC.Parser T.Text
 reference =
   string "&lt;" >> return "<"
   <|> string "&gt;" >> return ">"
   <|> string "&quot;" >> return "\""
 
-deref :: ByteString -> Either String [ByteString]
+deref :: T.Text -> Either String [T.Text]
 deref = parseOnly . AC.many1 $ (reference <|> AC.take 1)
