@@ -1,6 +1,6 @@
 name:   TCHHH
-version:        0.4
-license:        BSD3
+version:        0.5
+license:        MIT
 Author:         Yuichiro Hanada
 maintainer:     peanut2626@gmail.com
 synopsis:      TUI Twitter Client written in Haskell
