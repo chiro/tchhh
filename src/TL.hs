@@ -23,7 +23,7 @@ getColor 6 = Cyan
 getColor _ = White
 
 getColorIntensity :: Integer -> ColorIntensity
-getColorIntensity i = if i `rem` 2 == 0 then Dull else Vivid
+getColorIntensity i = if even i then Dull else Vivid
 
 getSGR :: Integer -> SGR
 getSGR user = SetColor Foreground (getColorIntensity user) (getColor (user `rem` 7))
@@ -31,13 +31,13 @@ getSGR user = SetColor Foreground (getColorIntensity user) (getColor (user `rem`
 showTLwithColor :: StreamingAPI -> IO ()
 showTLwithColor (SStatus s) = do
   let user = statusUser s
-  setSGR [getSGR ((userId user) + 1)]
+  setSGR [getSGR (userId user + 1)]
   showTL (SStatus s)
   setSGR []
   hFlush stdout
 showTLwithColor (SRetweetedStatus rs) = do
   let rtuser = rsUser rs
-  setSGR [getSGR ((userId rtuser) + 1)]
+  setSGR [getSGR (userId rtuser + 1)]
   showTL (SRetweetedStatus rs)
   setSGR []
   hFlush stdout
@@ -61,7 +61,7 @@ showTL (SRetweetedStatus rs) =
           status = rsRetweetedStatus rs
           user = userScreenName . statusUser $ status
           text = statusText status
-          content = B.concat ["Retweeted (by ", T.encodeUtf8 rtuser, "): ", T.encodeUtf8 user, ": ", T.encodeUtf8 text]
+
 showTL (SEvent ev) = do
   B.putStrLn $ B.concat [B.pack "Event: ", T.encodeUtf8 $ evEvent ev]
   putStr "> "
@@ -70,8 +70,8 @@ showTL (SEvent ev) = do
   showEventTarget $ evSource ev
   maybe (return ()) (\e -> putStr "> " >> showEventTarget e) $ evTargetObject ev
 showTL (SDelete d) = putStrLn ("Delete: " ++ show (delUserId d) ++ " " ++ show (delId d))
-showTL (SFriends f) = return () -- putStrLn $ show f
-showTL (SUnknown v) = return () -- putStrLn $ show v
+showTL (SFriends _) = return () -- putStrLn $ show f
+showTL (SUnknown _) = return () -- putStrLn $ show v
 
 
 showEventTarget :: EventTarget -> IO ()

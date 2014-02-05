@@ -55,4 +55,4 @@ main = runNoLoggingT $ do
   liftIO $ saveConfig cf cfg
   withCredential cred cfg $ do
     src <- userstream
-    src C.$$+- CL.mapM_ (\x -> liftIO (logAndShow x))
+    src C.$$+- CL.mapM_ (liftIO . logAndShow)

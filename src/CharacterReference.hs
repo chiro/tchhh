@@ -17,4 +17,4 @@ reference =
   <|> string "&quot;" >> return "\""
 
 deref :: ByteString -> Either String [ByteString]
-deref = parseOnly . AC.many1 $ (reference <|> (AC.take 1))
+deref = parseOnly . AC.many1 $ (reference <|> AC.take 1)
