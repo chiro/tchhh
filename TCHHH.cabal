@@ -11,25 +11,26 @@ build-Type:     Simple
 Executable TCHHH
  build-depends:
      base >= 4 && < 5
-     , mtl
-     , network
      , aeson >= 0.7.0.0
+     , ansi-terminal >= 0.6.1.1
+     , authenticate-oauth
      , attoparsec >= 0.8.6.1
      , bytestring
-     , text
+     , case-insensitive
+     , conduit
      , containers
+     , data-default >= 0.5 && < 0.6
      , directory
      , filepath
+     , http-conduit
+     , monad-logger
+     , mtl
+     , network
+     , resourcet
+     , text
      , twitter-conduit
      , twitter-types
-     , authenticate-oauth
-     , http-conduit
-     , resourcet
-     , conduit
-     , case-insensitive
-     , data-default >= 0.5 && < 0.6
-     , monad-logger
-     , ansi-terminal>= 0.6.1.1
 
  Main-Is:Main.hs
  Hs-Source-Dirs: src
+ ghc-options: -Wall
