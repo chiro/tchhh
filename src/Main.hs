@@ -19,7 +19,6 @@ import qualified Data.Text as T
 
 import Web.Authenticate.OAuth (Credential (..))
 import Web.Twitter.Conduit
-import Web.Twitter.Types
 
 isLogging :: Configuration -> Bool
 isLogging cfg = case logFile cfg of
@@ -53,7 +52,6 @@ main = runNoLoggingT $ do
   cf <- liftIO confFile
   cfg <- liftIO $ loadCfg cf
   let cred = makeCred cfg
-  pr <- liftIO getProxyEnv
   liftIO $ saveConfig cf cfg
   withCredential cred cfg $ do
     src <- userstream

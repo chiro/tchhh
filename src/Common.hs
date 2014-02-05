@@ -17,13 +17,10 @@ import qualified Data.Map as M
 import Network.HTTP.Conduit
 import qualified Network.URI as URI
 
-import System.Directory
 import System.Environment (getEnvironment)
-import System.FilePath
 import System.IO
 
 import Web.Authenticate.OAuth as OA
-import Web.Twitter.Conduit
 
 getTokens :: B.ByteString -- consumer key
              -> B.ByteString -- consumer secret

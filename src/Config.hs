@@ -9,8 +9,6 @@ module Config (
   makeCred
   ) where
 
-import Common
-
 import Prelude hiding (takeWhile)
 
 import Control.Applicative ((<$>), (<*>), empty)
@@ -22,11 +20,8 @@ import Data.Default
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 
-import Network.HTTP.Conduit
-
 import System.Directory
 import System.FilePath
-import System.IO
 
 import Web.Authenticate.OAuth (Credential (..))
 
