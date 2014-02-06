@@ -25,11 +25,8 @@ getColor 5 = Magenta
 getColor 6 = Cyan
 getColor _ = White
 
-getColorIntensity :: Integer -> ColorIntensity
-getColorIntensity i = if even i then Dull else Vivid
-
 getSGR :: Integer -> SGR
-getSGR user = SetColor Foreground (getColorIntensity user) (getColor (user `rem` 7))
+getSGR user = SetColor Foreground Vivid (getColor (user `rem` 7))
 
 showT :: Show a => a -> T.Text
 showT = T.pack . show
