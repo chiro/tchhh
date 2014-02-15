@@ -13,6 +13,7 @@ import Prelude hiding (takeWhile)
 
 import Control.Applicative ((<$>), (<*>), empty)
 
+import Data.Aeson ((.=), (.:), (.:?))
 import qualified Data.Aeson as AE
 import Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as BL
@@ -48,46 +49,40 @@ instance Default Configuration where
     logFile = Nothing
     }
 
-instance AE.ToJSON ByteString where
-  toJSON = AE.toJSON . B.unpack
-
 instance AE.ToJSON Configuration where
-  toJSON (Configuration isColor oauthToken oauthTokenSecret userId screenName consumerToken consumerSecret logFile) =
+  toJSON conf =
     AE.object [
-      "color" AE..= isColor,
-      "oauthToken" AE..= oauthToken,
-      "oauthTokenSecret" AE..= oauthTokenSecret,
-      "userId" AE..= userId,
-      "screenName" AE..= screenName,
-      "consumerToken" AE..= consumerToken,
-      "consumerSecret" AE..= consumerSecret,
-      "logFile" AE..= logFile
+      "color" .= isColor conf,
+      "oauthToken" .= oauthToken conf,
+      "oauthTokenSecret" .= oauthTokenSecret conf,
+      "userId" .= userId conf,
+      "screenName" .= screenName conf,
+      "consumerToken" .= consumerToken conf,
+      "consumerSecret" .= consumerSecret conf,
+      "logFile" .= logFile conf
       ]
-instance AE.FromJSON Configuration where
-  parseJSON (AE.Object v) = Configuration <$>
-                         v AE..: "color" <*>
-                         v AE..: "oauthToken" <*>
-                         v AE..: "oauthTokenSecret" <*>
-                         v AE..: "userId" <*>
-                         v AE..: "screenName" <*>
-                         v AE..: "consumerToken" <*>
-                         v AE..: "consumerSecret" <*>
-                         v AE..:? "logFile"
-  parseJSON _ = Control.Applicative.empty
 
-getConfig :: B.ByteString -> Maybe Configuration
-getConfig conf = AE.decode (BL.pack (B.unpack conf))
+instance AE.FromJSON Configuration where
+  parseJSON (AE.Object v) =
+    Configuration <$>
+    v .: "color" <*>
+    v .: "oauthToken" <*>
+    v .: "oauthTokenSecret" <*>
+    v .: "userId" <*>
+    v .: "screenName" <*>
+    v .: "consumerToken" <*>
+    v .: "consumerSecret" <*>
+    v .:? "logFile"
+  parseJSON _ = Control.Applicative.empty
 
 loadConfig :: FilePath -> IO (Maybe Configuration)
 loadConfig fp = do
   existp <- doesFileExist fp
   if existp
-    then
-    do
-      content <- B.readFile fp
-      case getConfig content of
-        Just config -> return $ Just config
-        Nothing     -> return Nothing
+    then do content <- BL.readFile fp
+            case AE.decode content of
+              Just config -> return $ Just config
+              Nothing     -> return Nothing
     else return Nothing
 
 saveConfig :: FilePath -> Configuration -> IO ()
