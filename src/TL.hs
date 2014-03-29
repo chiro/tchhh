@@ -22,11 +22,11 @@ getColor 2 = Green
 getColor 3 = Yellow
 getColor 4 = Blue
 getColor 5 = Magenta
-getColor 6 = Cyan
+getColor 6 = Blue -- Cyan
 getColor _ = White
 
 getSGR :: Integer -> SGR
-getSGR user = SetColor Foreground Vivid (getColor (user `rem` 7))
+getSGR user = SetColor Foreground Dull (getColor (user `rem` 7))
 
 showT :: Show a => a -> T.Text
 showT = T.pack . show
