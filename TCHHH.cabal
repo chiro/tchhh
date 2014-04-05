@@ -17,7 +17,7 @@ Executable TCHHH
      , attoparsec >= 0.8.6.1
      , bytestring
      , case-insensitive
-     , conduit
+     , conduit < 1.1
      , containers
      , data-default >= 0.5 && < 0.6
      , directory
