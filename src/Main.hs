@@ -9,6 +9,7 @@ import TL
 import Control.Monad (when)
 import Control.Monad.Logger
 import Control.Monad.Trans
+import Control.Monad.Trans.Resource (ResourceT)
 
 import qualified Data.ByteString.Char8 as B
 import qualified Data.Conduit as C
@@ -40,7 +41,7 @@ loadCfg cp = do
     Just c -> return c
     Nothing -> error "Configuration file is not found!"
 
-withCredential :: Credential -> Configuration -> TW (C.ResourceT (NoLoggingT IO)) a -> NoLoggingT IO a
+withCredential :: Credential -> Configuration -> TW (ResourceT (NoLoggingT IO)) a -> NoLoggingT IO a
 withCredential cred cfg task = do
   pr <- liftIO getProxyEnv
   let tokens = getTokens (B.pack $ consumerToken cfg) (B.pack $ consumerSecret cfg)
