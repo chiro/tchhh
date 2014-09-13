@@ -20,6 +20,7 @@ import qualified Data.Text as T
 
 import Web.Authenticate.OAuth (Credential (..))
 import Web.Twitter.Conduit
+import Web.Twitter.Types (StreamingAPI(..))
 
 isLogging :: Configuration -> Bool
 isLogging cfg = case logFile cfg of

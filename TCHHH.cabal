@@ -1,5 +1,5 @@
 name:   TCHHH
-version:        0.5
+version:        0.5.1
 license:        MIT
 Author:         Yuichiro Hanada
 maintainer:     peanut2626@gmail.com
@@ -11,25 +11,27 @@ build-Type:     Simple
 Executable TCHHH
  build-depends:
      base >= 4 && < 5
-     , aeson == 0.7.0.6
+     , aeson == 0.8.0.0
      , ansi-terminal == 0.6.1.1
      , authenticate-oauth == 1.5
-     , attoparsec == 0.12.1.1
-     , bytestring == 0.10.0.2
-     , case-insensitive == 1.2.0.0
-     , conduit == 1.1.7
-     , containers == 0.5.0.0
+     , attoparsec == 0.12.1.2
+     , bytestring == 0.10.4.0
+     , case-insensitive == 1.2.0.1
+     , conduit == 1.2.0.2
+     , containers == 0.5.5.1
      , data-default == 0.5.3
-     , directory == 1.2.0.1
-     , filepath == 1.3.0.1
-     , http-conduit == 2.1.4
-     , monad-logger == 0.3.7.1
+     , directory == 1.2.1.0
+     , filepath == 1.3.0.2
+     , http-conduit == 2.1.4.3
+     , monad-logger == 0.3.7.2
      , mtl == 2.2.1
-     , network == 2.5.0.0
+     , network == 2.6.0.2
+     , network-uri == 2.6.0.1
      , resourcet == 1.1.2.3
      , text == 1.1.1.3
-     , twitter-conduit == 0.0.5.2
-     , twitter-types == 0.3.20140801
+     , twitter-conduit == 0.0.5.8
+     , twitter-types == 0.5.0
+     , lens < 4.4
 
  Main-Is:Main.hs
  Hs-Source-Dirs: src

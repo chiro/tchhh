@@ -82,7 +82,7 @@ showEventTarget (ETUser u) =
                          ", description:", description, ")"]
     where screenName = userScreenName u
           description = fromMaybe "" $ userDescription u
-          fol = fromMaybe 0 $ userFollowers u
+          fol = userFollowersCount u
 showEventTarget (ETStatus s) =
   putStrLn $ T.concat [user, ": ", text]
     where user = userScreenName . statusUser $ s
