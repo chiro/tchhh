@@ -8,10 +8,11 @@ import Common
 import Config
 import TL
 
+import Control.Applicative ((<$>))
 import Control.Monad (when)
 import Control.Monad.Logger
 import Control.Monad.Trans
-import Control.Monad.Trans.Resource (MonadThrow, monadThrow, ResourceT)
+import Control.Monad.Trans.Resource
 
 import qualified Data.Aeson as AE
 import qualified Data.Aeson.Encode as AEE
@@ -20,10 +21,14 @@ import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Conduit as C
 import qualified Data.Conduit.List as CL
 import Data.Default
-import Data.Maybe (fromJust, isJust)
+import qualified Data.List as L
+import Data.Maybe (fromJust, isJust, isNothing)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 
-import Web.Authenticate.OAuth (Credential (..))
+import Network.HTTP.Conduit (withManager)
+
+import Web.Authenticate.OAuth (Credential(..))
 import Web.Twitter.Conduit
 import Web.Twitter.Types (StreamingAPI(..))
 
@@ -75,11 +80,22 @@ streamWithRaw req = do
     rsrc <- getResponse =<< makeRequest req
     responseBody rsrc $=+ CL.sequence sinkFromJSONWithRaw
 
+getOAuthToken :: Configuration -> IO Configuration
+getOAuthToken cfg = do
+  let oauth = getTokens (B.pack $ consumerToken cfg) (B.pack $ consumerSecret cfg)
+  pr <- getProxyEnv
+  cred <- withManager $ authorize pr oauth
+  return $ cfg { oauthToken = TE.decodeUtf8 <$> L.lookup "oauth_token" (unCredential cred),
+                 oauthTokenSecret = TE.decodeUtf8 <$> L.lookup "oauth_token_secret" (unCredential cred)}
+
 main :: IO ()
-main = runNoLoggingT $ do
-  cfg <- liftIO loadCfg
-  let cred = makeCred cfg
-  liftIO $ saveConfig cfg
-  withCredential cred cfg $ do
+main = do
+  cfg <- loadCfg
+  when (isNothing $ oauthToken cfg) $ do
+    cfg' <- getOAuthToken cfg
+    saveConfig cfg'
+  cfg' <- loadCfg
+  let cred = makeCred cfg'
+  runNoLoggingT $ withCredential cred cfg' $ do
     src <- streamWithRaw userstream
     src C.$$+- CL.mapM_ (liftIO . logAndShow)

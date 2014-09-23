@@ -27,21 +27,21 @@ getTokens :: B.ByteString -- consumer key
              -> OA.OAuth
 getTokens ct cs =
   def { oauthServerName = "twitter"
-      , oauthRequestUri = "http://twitter.com/oauth/request_token"
-      , oauthAccessTokenUri = "http://twitter.com/oauth/access_token"
-      , oauthAuthorizeUri = "http://twitter.com/oauth/authorize"
+      , oauthRequestUri = "https://api.twitter.com/oauth/request_token"
+      , oauthAccessTokenUri = "https://api.twitter.com/oauth/access_token"
+      , oauthAuthorizeUri = "https://api.twitter.com/oauth/authorize"
       , oauthConsumerKey = ct
       , oauthConsumerSecret = cs
       , oauthSignatureMethod = HMACSHA1
-      , oauthCallback = Nothing
+      , oauthCallback = Just "oob"
       }
 
-getPIN :: String -> IO String
+getPIN :: String -> IO B.ByteString
 getPIN url = do
   putStrLn $ "browse URL: " ++ url
   putStr "> what was the PIN twitter provided you with? "
   hFlush stdout
-  getLine
+  B.getLine
 
 getProxyEnv :: IO (Maybe Proxy)
 getProxyEnv = do
@@ -61,4 +61,4 @@ authorize pr oauth mng = do
   cred <- OA.getTemporaryCredentialProxy pr oauth mng
   let url = OA.authorizeUrl oauth cred
   pin <- liftIO $ getPIN url
-  OA.getAccessTokenProxy pr oauth (OA.insert "oauth_verifier" (B.pack pin) cred) mng
+  OA.getAccessTokenProxy pr oauth (OA.insert "oauth_verifier" pin cred) mng
