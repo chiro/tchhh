@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Main where
 
@@ -9,13 +11,16 @@ import TL
 import Control.Monad (when)
 import Control.Monad.Logger
 import Control.Monad.Trans
-import Control.Monad.Trans.Resource (ResourceT)
+import Control.Monad.Trans.Resource (MonadThrow, monadThrow, ResourceT)
 
+import qualified Data.Aeson as AE
+import qualified Data.Aeson.Encode as AEE
 import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Conduit as C
 import qualified Data.Conduit.List as CL
 import Data.Default
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, isJust)
 import qualified Data.Text as T
 
 import Web.Authenticate.OAuth (Credential (..))
@@ -23,21 +28,21 @@ import Web.Twitter.Conduit
 import Web.Twitter.Types (StreamingAPI(..))
 
 isLogging :: Configuration -> Bool
-isLogging cfg = case logFile cfg of
-  Just _ -> True
-  Nothing -> False
+isLogging = isJust . logFile
 
-logAndShow :: StreamingAPI -> IO ()
-logAndShow s = do
-  Just cfg <- confFile >>= loadConfig
-  when (isLogging cfg) (appendFile ("./" ++ (T.unpack . fromJust $ logFile cfg)) (show s))
+logAndShow :: (StreamingAPI, AE.Value) -> IO ()
+logAndShow (s, v) = do
+  Just cfg <- loadConfig
+  when (isLogging cfg) $ do
+    let file = "./" ++ (T.unpack . fromJust $ logFile cfg)
+    BL.appendFile file $ AEE.encode v
   if isColor cfg
    then showTLwithColor s
    else showTL s
 
-loadCfg :: FilePath -> IO Configuration
-loadCfg cp = do
-  mcfg <- loadConfig cp
+loadCfg :: IO Configuration
+loadCfg = do
+  mcfg <- loadConfig
   case mcfg of
     Just c -> return c
     Nothing -> error "Configuration file is not found!"
@@ -49,12 +54,32 @@ withCredential cred cfg task = do
   let env = (setCredential tokens cred def) { twProxy = pr }
   runTW env task
 
+($=+) :: MonadIO m
+      => C.ResumableSource m a
+      -> C.Conduit a m o
+      -> m (C.ResumableSource m o)
+($=+) = (return .) . (C.$=+)
+
+sinkFromJSONWithRaw :: (AE.FromJSON a, MonadThrow m, MonadLogger m)
+                    => C.Consumer B.ByteString m (a, AE.Value)
+sinkFromJSONWithRaw = do
+  v <- sinkJSON
+  case AE.fromJSON v of
+    AE.Error err -> monadThrow $ FromJSONError err
+    AE.Success r -> return (r, v)
+
+streamWithRaw :: (TwitterBaseM m, AE.FromJSON value)
+              => APIRequest apiName responseType
+              -> TW m (C.ResumableSource (TW m) (value, AE.Value))
+streamWithRaw req = do
+    rsrc <- getResponse =<< makeRequest req
+    responseBody rsrc $=+ CL.sequence sinkFromJSONWithRaw
+
 main :: IO ()
 main = runNoLoggingT $ do
-  cf <- liftIO confFile
-  cfg <- liftIO $ loadCfg cf
+  cfg <- liftIO loadCfg
   let cred = makeCred cfg
-  liftIO $ saveConfig cf cfg
+  liftIO $ saveConfig cfg
   withCredential cred cfg $ do
-    src <- stream userstream
+    src <- streamWithRaw userstream
     src C.$$+- CL.mapM_ (liftIO . logAndShow)
