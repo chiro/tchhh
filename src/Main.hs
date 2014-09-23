@@ -41,6 +41,7 @@ logAndShow (s, v) = do
   when (isLogging cfg) $ do
     let file = "./" ++ (T.unpack . fromJust $ logFile cfg)
     BL.appendFile file $ AEE.encode v
+    BL.appendFile file "\n"
   if isColor cfg
    then showTLwithColor s
    else showTL s
