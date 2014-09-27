@@ -30,7 +30,7 @@ Executable TCHHH
      , pit == 0.3.0
      , resourcet == 1.1.2.3
      , text == 1.2.0.0
-     , twitter-conduit == 0.0.6
+     , twitter-conduit == 0.0.7
      , twitter-types == 0.5.0
 
  Main-Is:Main.hs
